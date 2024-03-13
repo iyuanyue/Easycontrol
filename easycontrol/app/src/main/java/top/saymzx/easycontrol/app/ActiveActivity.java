@@ -35,15 +35,6 @@ public class ActiveActivity extends Activity {
     activityActiveBinding.url.setOnClickListener(v -> PublicTools.startUrl(this, "https://gitee.com/mingzhixianweb/easycontrol/blob/master/DONATE.md"));
   }
 
-  private void setButtonListener() {
-    activityActiveBinding.active.setOnClickListener(v -> {
-      String activeKey = String.valueOf(activityActiveBinding.key.getText());
-      AppData.setting.setActiveKey(activeKey);
-      Pair<ItemLoadingBinding, Dialog> loading = ViewTools.createLoading(this);
-      loading.second.show();
-      ).start();
-    });
-  }
 
   // 取消激活
 
