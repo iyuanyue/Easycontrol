@@ -44,8 +44,8 @@ public class MainActivity extends Activity {
     activityMainBinding = ActivityMainBinding.inflate(this.getLayoutInflater());
     setContentView(activityMainBinding.getRoot());
     // 检测权限
-//    if (!checkPermission()) createAlert();
-//    else startApp();
+    if (!checkPermission()) createAlert();
+    else startApp();
   }
 
   @Override
