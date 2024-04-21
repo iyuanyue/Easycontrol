@@ -38,7 +38,7 @@ public final class Server {
 
   private static final Object object = new Object();
 
-  private static final int timeoutDelay = 1000 * 5;
+  private static final int timeoutDelay = 1000 * 20;
 
   public static void main(String... args) {
     try {
@@ -119,7 +119,7 @@ public final class Server {
   }
 
   private static void connectClient() throws IOException {
-    try (ServerSocket serverSocket = new ServerSocket(25166)) {
+    try (ServerSocket serverSocket = new ServerSocket(Options.serverPort)) {
       mainSocket = serverSocket.accept();
       videoSocket = serverSocket.accept();
       mainOutputStream = mainSocket.getOutputStream();

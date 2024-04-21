@@ -6,8 +6,10 @@ import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.provider.Settings;
 import android.util.Pair;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -17,6 +19,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -120,6 +123,9 @@ public class ClientController implements TextureView.SurfaceTextureListener {
         case "checkClipBoard":
           checkClipBoard();
           break;
+        case "updateSite":
+          updateSite(byteBuffer);
+          break;
         default:
           if (byteBuffer == null) break;
         case "writeByteBuffer":
@@ -139,8 +145,8 @@ public class ClientController implements TextureView.SurfaceTextureListener {
           break;
       }
     } catch (Exception ignored) {
-      PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_stream_closed) + action, true);
-      Client.sendAction(device.uuid, "close", ByteBuffer.allocate(1), 0);
+      byte[] err = ("controller" + AppData.applicationContext.getString(R.string.toast_stream_closed) + action).getBytes(StandardCharsets.UTF_8);
+      Client.sendAction(device.uuid, "close", ByteBuffer.wrap(err), 0);
     }
   }
 
@@ -168,14 +174,35 @@ public class ClientController implements TextureView.SurfaceTextureListener {
 
   private synchronized void changeToSmall() {
     hide();
-    if (smallView == null) smallView = new SmallView(device.uuid);
-    AppData.uiHandler.post(smallView::show);
+    if (noFloatPermission()) {
+      PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_float_per), true);
+      changeToFull();
+    } else {
+      if (smallView == null) smallView = new SmallView(device.uuid);
+      AppData.uiHandler.post(smallView::show);
+      updateSite(null);
+    }
   }
 
   private synchronized void changeToMini(ByteBuffer byteBuffer) {
     hide();
-    if (miniView == null) miniView = new MiniView(device.uuid);
-    AppData.uiHandler.post(() -> miniView.show(byteBuffer));
+    if (noFloatPermission()) {
+      PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_float_per), true);
+      changeToFull();
+    } else {
+      if (miniView == null) miniView = new MiniView(device.uuid);
+      AppData.uiHandler.post(() -> miniView.show(byteBuffer));
+    }
+  }
+
+  // 检查悬浮窗权限
+  private boolean noFloatPermission() {
+    // 检查悬浮窗权限，防止某些设备如鸿蒙不兼容
+    try {
+      return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(AppData.applicationContext);
+    } catch (Exception ignored) {
+      return false;
+    }
   }
 
   private synchronized void changeToApp() throws Exception {
@@ -187,7 +214,7 @@ public class ClientController implements TextureView.SurfaceTextureListener {
     if (matcher.find()) {
       Device tempDevice = device.clone(String.valueOf(UUID.randomUUID()));
       tempDevice.name = "----";
-      tempDevice.address = tempDevice.address + "#" + matcher.group(1);
+      tempDevice.startApp = matcher.group(1);
       // 为了错开界面
       tempDevice.smallX += 200;
       tempDevice.smallY += 200;
@@ -224,12 +251,37 @@ public class ClientController implements TextureView.SurfaceTextureListener {
     int height = byteBuffer.getInt();
     if (width <= 100 || height <= 100) return;
     this.videoSize = new Pair<>(width, height);
+    updateSite(null);
     AppData.uiHandler.post(this::reCalculateTextureViewSize);
+  }
+
+  private void updateSite(ByteBuffer byteBuffer) {
+    if (smallView == null || videoSize == null || !smallView.isShow()) return;
+    int x;
+    int y;
+    boolean isAuto = byteBuffer == null;
+    if (videoSize.first < videoSize.second) {
+      x = isAuto ? device.smallX : byteBuffer.getInt();
+      y = isAuto ? device.smallY : byteBuffer.getInt();
+      device.smallX = x;
+      device.smallY = y;
+    } else {
+      x = isAuto ? device.smallXLan : byteBuffer.getInt();
+      y = isAuto ? device.smallYLan : byteBuffer.getInt();
+      device.smallXLan = x;
+      device.smallYLan = y;
+    }
+    AppData.uiHandler.post(() -> smallView.updateView(x, y));
   }
 
   // 重新计算TextureView大小
   private void reCalculateTextureViewSize() {
     if (maxSize == null || videoSize == null) return;
+    Pair<Integer, Integer> maxSize = this.maxSize;
+    if (smallView != null && smallView.isShow()) {
+      if (videoSize.first < videoSize.second) maxSize = new Pair<>(this.maxSize.first, this.maxSize.first);
+      else maxSize = new Pair<>(this.maxSize.second, this.maxSize.second);
+    }
     // 根据原画面大小videoSize计算在maxSize空间内的最大缩放大小
     int tmp1 = videoSize.second * maxSize.first / videoSize.first;
     // 横向最大不会超出
@@ -290,6 +342,7 @@ public class ClientController implements TextureView.SurfaceTextureListener {
   private String nowClipboardText = "";
 
   private void checkClipBoard() {
+    if (!device.listenClip) return;
     ClipData clipBoard = AppData.clipBoard.getPrimaryClip();
     if (clipBoard != null && clipBoard.getItemCount() > 0) {
       String newClipBoardText = String.valueOf(clipBoard.getItemAt(0).getText());

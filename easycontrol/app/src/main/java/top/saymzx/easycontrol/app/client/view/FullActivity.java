@@ -13,6 +13,7 @@ import android.view.KeyEvent;
 import android.view.View;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import top.saymzx.easycontrol.app.R;
 import top.saymzx.easycontrol.app.client.Client;
@@ -35,6 +36,7 @@ public class FullActivity extends Activity implements SensorEventListener {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    ViewTools.setStatusAndNavBar(this);
     ViewTools.setFullScreen(this);
     activityFullBinding = ActivityFullBinding.inflate(this.getLayoutInflater());
     setContentView(activityFullBinding.getRoot());
@@ -48,7 +50,7 @@ public class FullActivity extends Activity implements SensorEventListener {
     setNavBarHide(device.showNavBarOnConnect);
     autoRotate = AppData.setting.getAutoRotate();
     activityFullBinding.buttonAutoRotate.setImageResource(autoRotate ? R.drawable.un_auto : R.drawable.auto);
-    if (device.address.contains("#")) {
+    if (!Objects.equals(device.startApp, "")) {
       activityFullBinding.buttonHome.setVisibility(View.GONE);
       activityFullBinding.buttonSwitch.setVisibility(View.GONE);
       activityFullBinding.buttonApp.setVisibility(View.GONE);
@@ -133,7 +135,7 @@ public class FullActivity extends Activity implements SensorEventListener {
       clientController.handleAction(light ? "buttonLight" : "buttonLightOff", null, 0);
       changeBarView();
     });
-    activityFullBinding.bar.setOnClickListener(v -> changeBarView());
+    activityFullBinding.buttonMore.setOnClickListener(v -> changeBarView());
     activityFullBinding.buttonAutoRotate.setOnClickListener(v -> {
       autoRotate = !autoRotate;
       AppData.setting.setAutoRotate(autoRotate);
@@ -150,7 +152,8 @@ public class FullActivity extends Activity implements SensorEventListener {
 
   private void changeBarView() {
     boolean toShowView = activityFullBinding.barView.getVisibility() == View.GONE;
-    ViewTools.viewAnim(activityFullBinding.barView, toShowView, PublicTools.dp2px(40f), 0, (isStart -> {
+    boolean isLandscape = lastOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE || lastOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+    ViewTools.viewAnim(activityFullBinding.barView, toShowView, 0, PublicTools.dp2px(40f) * (isLandscape ? -1 : 1), (isStart -> {
       if (isStart && toShowView) activityFullBinding.barView.setVisibility(View.VISIBLE);
       else if (!isStart && !toShowView) activityFullBinding.barView.setVisibility(View.GONE);
     }));

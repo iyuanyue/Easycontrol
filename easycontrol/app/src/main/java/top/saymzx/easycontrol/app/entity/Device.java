@@ -5,11 +5,14 @@ import java.util.Objects;
 public class Device {
   public static final int TYPE_NETWORK = 1;
   public static final int TYPE_LINK = 2;
-
   public final String uuid;
   public final int type;
   public String name;
   public String address = "";
+  public String startApp = "";
+  public int adbPort = 5555;
+  public int serverPort = 25166;
+  public boolean listenClip=true;
   public boolean isAudio = true;
   public int maxSize = 1600;
   public int maxFps = 60;
@@ -29,12 +32,14 @@ public class Device {
   public boolean lockOnClose = true;
   public boolean lightOnClose = false;
   public boolean reconnectOnClose = false;
-
   public int customResolutionWidth = 1080;
   public int customResolutionHeight = 2400;
   public int smallX = 200;
   public int smallY = 200;
   public int smallLength = 800;
+  public int smallXLan = 200;
+  public int smallYLan = 200;
+  public int smallLengthLan = 800;
   public int miniY = 200;
 
   public Device(String uuid, int type) {
@@ -59,6 +64,10 @@ public class Device {
     Device newDevice = new Device(uuid, type);
     newDevice.name = name;
     newDevice.address = address;
+    newDevice.startApp = startApp;
+    newDevice.adbPort = adbPort;
+    newDevice.serverPort = serverPort;
+    newDevice.listenClip = listenClip;
     newDevice.isAudio = isAudio;
     newDevice.maxSize = maxSize;
     newDevice.maxFps = maxFps;
@@ -84,6 +93,9 @@ public class Device {
     newDevice.smallX = smallX;
     newDevice.smallY = smallY;
     newDevice.smallLength = smallLength;
+    newDevice.smallXLan = smallXLan;
+    newDevice.smallYLan = smallYLan;
+    newDevice.smallLengthLan = smallLengthLan;
     newDevice.miniY = miniY;
     return newDevice;
   }
